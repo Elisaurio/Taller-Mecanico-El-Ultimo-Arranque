@@ -1,0 +1,10 @@
+com\ultimoarranque\model\Repuesto.class
+com\ultimoarranque\model\EstadoOrden.class
+com\ultimoarranque\model\Servicio.class
+com\ultimoarranque\model\OrdenTrabajo.class
+com\ultimoarranque\model\Persona.class
+com\ultimoarranque\model\Cliente.class
+com\ultimoarranque\model\Mecanico.class
+com\ultimoarranque\TestModelo.class
+com\ultimoarranque\model\DetalleRepuesto.class
+com\ultimoarranque\model\Vehiculo.class
