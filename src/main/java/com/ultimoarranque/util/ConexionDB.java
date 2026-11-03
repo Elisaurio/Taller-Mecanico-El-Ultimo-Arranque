@@ -13,7 +13,7 @@ public class ConexionDB {
             "root";
 
     private static final String PASSWORD =
-            "CONTRASEÑA";
+            "TUCONTRASEÑA"; // Reemplazar con tu contraseña de MySQL c:
 
     public static Connection obtenerConexion()
             throws SQLException {
