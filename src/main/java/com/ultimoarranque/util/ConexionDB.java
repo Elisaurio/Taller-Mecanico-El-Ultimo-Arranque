@@ -13,7 +13,7 @@ public class ConexionDB {
             "root";
 
     private static final String PASSWORD =
-            "@gui$qu3Z-10";
+            "CONTRASEÑA";
 
     public static Connection obtenerConexion()
             throws SQLException {
