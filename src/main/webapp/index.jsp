@@ -71,6 +71,10 @@
             <p>Gestionar el flujo completo de reparación.</p>
         </a>
 
+        <a href="${pageContext.request.contextPath}/reportes">
+            Reportes PDF
+        </a>
+
     </section>
 
 </main>

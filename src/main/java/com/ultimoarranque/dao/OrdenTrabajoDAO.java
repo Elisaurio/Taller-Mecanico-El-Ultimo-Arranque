@@ -1,5 +1,6 @@
 package com.ultimoarranque.dao;
 
+import com.ultimoarranque.exception.ReglaNegocioException;
 import com.ultimoarranque.model.EstadoOrden;
 import com.ultimoarranque.model.OrdenTrabajo;
 import com.ultimoarranque.util.ConexionDB;
@@ -501,4 +502,129 @@ public class OrdenTrabajoDAO {
 
         return orden;
     }
+
+    public double finalizarOrden(int ordenId) throws SQLException, ReglaNegocioException {
+    String sqlEstado = """
+        SELECT estado
+        FROM ordenes_trabajo
+        WHERE id = ?
+        FOR UPDATE
+        """;
+
+    String sqlServicios = """
+        SELECT COUNT(*)
+        FROM orden_servicios
+        WHERE orden_id = ?
+        """;
+
+    String sqlTotal = """
+        SELECT
+            COALESCE((
+                SELECT SUM(s.costo_mano_obra)
+                FROM orden_servicios os
+                INNER JOIN servicios s ON s.id = os.servicio_id
+                WHERE os.orden_id = ?
+            ), 0)
+            +
+            COALESCE((
+                SELECT SUM(ore.cantidad * ore.precio_unitario)
+                FROM orden_repuestos ore
+                WHERE ore.orden_id = ?
+            ), 0) AS total
+        """;
+
+    String sqlFinalizar = """
+        UPDATE ordenes_trabajo
+        SET estado = 'FINALIZADA',
+            total = ?,
+            fecha_finalizacion = CURRENT_TIMESTAMP
+        WHERE id = ?
+        """;
+
+    try (Connection conexion = ConexionDB.obtenerConexion()) {
+
+        try {
+            conexion.setAutoCommit(false);
+
+            EstadoOrden estadoActual;
+
+            try (PreparedStatement ps = conexion.prepareStatement(sqlEstado)) {
+                ps.setInt(1, ordenId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        throw new ReglaNegocioException("La orden no existe.");
+                    }
+
+                    estadoActual = EstadoOrden.valueOf(rs.getString("estado"));
+                }
+            }
+
+            if (estadoActual == EstadoOrden.FINALIZADA) {
+                throw new ReglaNegocioException(
+                        "La orden ya está finalizada."
+                );
+            }
+
+            if (estadoActual == EstadoOrden.CANCELADA) {
+                throw new ReglaNegocioException(
+                        "Una orden cancelada no puede finalizarse."
+                );
+            }
+
+            int cantidadServicios;
+
+            try (PreparedStatement ps = conexion.prepareStatement(sqlServicios)) {
+                ps.setInt(1, ordenId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    cantidadServicios = rs.getInt(1);
+                }
+            }
+
+            if (cantidadServicios == 0) {
+                throw new ReglaNegocioException(
+                        "La orden debe tener al menos un servicio para finalizarse."
+                );
+            }
+
+            double total;
+
+            try (PreparedStatement ps = conexion.prepareStatement(sqlTotal)) {
+                ps.setInt(1, ordenId);
+                ps.setInt(2, ordenId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    rs.next();
+                    total = rs.getDouble("total");
+                }
+            }
+
+            try (PreparedStatement ps = conexion.prepareStatement(sqlFinalizar)) {
+                ps.setDouble(1, total);
+                ps.setInt(2, ordenId);
+
+                int filas = ps.executeUpdate();
+
+                if (filas != 1) {
+                    throw new SQLException(
+                            "No fue posible finalizar la orden."
+                    );
+                }
+            }
+
+            conexion.commit();
+
+            return total;
+
+        } catch (ReglaNegocioException | SQLException e) {
+            conexion.rollback();
+            throw e;
+        } finally {
+            conexion.setAutoCommit(true);
+        }
+    }
+}
+
 }

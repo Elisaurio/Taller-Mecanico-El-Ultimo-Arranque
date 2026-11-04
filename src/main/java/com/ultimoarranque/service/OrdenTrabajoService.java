@@ -10,97 +10,132 @@ import java.util.List;
 
 public class OrdenTrabajoService {
 
-    private final OrdenTrabajoDAO dao;
+    private final OrdenTrabajoDAO ordenTrabajoDAO;
 
     public OrdenTrabajoService() {
-        this.dao = new OrdenTrabajoDAO();
+        this.ordenTrabajoDAO =
+                new OrdenTrabajoDAO();
     }
 
-    public int crearOrden(OrdenTrabajo orden)
+    public int crearOrden(
+            OrdenTrabajo orden)
             throws SQLException, ReglaNegocioException {
 
         if (orden == null) {
             throw new ReglaNegocioException(
-                    "La orden de trabajo es obligatoria."
+                    "La orden no puede ser nula."
             );
         }
 
-        if (orden.getVehiculo() == null ||
-                orden.getVehiculo().getId() <= 0) {
+        if (orden.getVehiculo() == null) {
+            throw new ReglaNegocioException(
+                    "Debe seleccionar un vehiculo."
+            );
+        }
+
+        if (orden.getMecanico() == null) {
+            throw new ReglaNegocioException(
+                    "Debe seleccionar un mecanico."
+            );
+        }
+
+        if (orden.getDescripcionProblema() == null
+                || orden.getDescripcionProblema().isBlank()) {
 
             throw new ReglaNegocioException(
-                    "Debe seleccionar un vehículo."
+                    "Debe ingresar la descripcion del problema."
             );
         }
 
-        if (orden.getMecanico() == null ||
-                orden.getMecanico().getId() <= 0) {
-
-            throw new ReglaNegocioException(
-                    "Debe seleccionar un mecánico."
-            );
-        }
-
-        if (orden.getDescripcionProblema() == null ||
-                orden.getDescripcionProblema().trim().isEmpty()) {
-
-            throw new ReglaNegocioException(
-                    "La descripción del problema es obligatoria."
-            );
-        }
-
-        orden.setEstado(EstadoOrden.PENDIENTE);
-
-        return dao.crearOrden(orden);
+        return ordenTrabajoDAO.crearOrden(orden);
     }
 
     public OrdenTrabajo buscarPorId(int id)
-            throws SQLException, ReglaNegocioException {
+            throws SQLException {
 
-        if (id <= 0) {
-            throw new ReglaNegocioException(
-                    "El ID de la orden debe ser válido."
-            );
-        }
-
-        return dao.buscarPorId(id);
+        return ordenTrabajoDAO.buscarPorId(id);
     }
 
     public List<OrdenTrabajo> listar()
             throws SQLException {
 
-        return dao.listar();
+        return ordenTrabajoDAO.listar();
+    }
+
+    public void actualizarEstado(
+            int ordenId,
+            String estado)
+            throws SQLException, ReglaNegocioException {
+
+        EstadoOrden estadoOrden;
+
+        try {
+            estadoOrden =
+                    EstadoOrden.valueOf(
+                            estado
+                                    .trim()
+                                    .toUpperCase()
+                    );
+        } catch (IllegalArgumentException e) {
+            throw new ReglaNegocioException(
+                    "Estado de orden no valido."
+            );
+        }
+
+        ordenTrabajoDAO.actualizarEstado(
+                ordenId,
+                estadoOrden
+        );
     }
 
     public void iniciarOrden(int ordenId)
             throws SQLException, ReglaNegocioException {
 
-        OrdenTrabajo orden = obtenerOrdenValida(ordenId);
+        OrdenTrabajo orden =
+                ordenTrabajoDAO.buscarPorId(
+                        ordenId
+                );
 
-        if (orden.getEstado() != EstadoOrden.PENDIENTE) {
+        if (orden == null) {
             throw new ReglaNegocioException(
-                    "Solo una orden PENDIENTE puede pasar a EN_PROCESO."
+                    "La orden no existe."
             );
         }
 
-        dao.actualizarEstado(
+        if (orden.getEstado()
+                != EstadoOrden.PENDIENTE) {
+
+            throw new ReglaNegocioException(
+                    "Solo una orden pendiente puede pasar a proceso."
+            );
+        }
+
+        ordenTrabajoDAO.actualizarEstado(
                 ordenId,
                 EstadoOrden.EN_PROCESO
         );
     }
 
-    public void agregarServicio(int ordenId, int servicioId)
+    public void agregarServicio(
+            int ordenId,
+            int servicioId)
             throws SQLException, ReglaNegocioException {
 
-        verificarOrdenEditable(ordenId);
+        OrdenTrabajo orden =
+                ordenTrabajoDAO.buscarPorId(
+                        ordenId
+                );
 
-        if (servicioId <= 0) {
+        if (orden == null) {
             throw new ReglaNegocioException(
-                    "El ID del servicio debe ser válido."
+                    "La orden no existe."
             );
         }
 
-        dao.agregarServicio(ordenId, servicioId);
+        ordenTrabajoDAO.agregarServicio(
+                ordenId,
+                servicioId
+        );
     }
 
     public void agregarRepuesto(
@@ -109,21 +144,24 @@ public class OrdenTrabajoService {
             int cantidad)
             throws SQLException, ReglaNegocioException {
 
-        verificarOrdenEditable(ordenId);
-
-        if (repuestoId <= 0) {
-            throw new ReglaNegocioException(
-                    "El ID del repuesto debe ser válido."
-            );
-        }
-
         if (cantidad <= 0) {
             throw new ReglaNegocioException(
                     "La cantidad debe ser mayor que cero."
             );
         }
 
-        dao.agregarRepuesto(
+        OrdenTrabajo orden =
+                ordenTrabajoDAO.buscarPorId(
+                        ordenId
+                );
+
+        if (orden == null) {
+            throw new ReglaNegocioException(
+                    "La orden no existe."
+            );
+        }
+
+        ordenTrabajoDAO.agregarRepuesto(
                 ordenId,
                 repuestoId,
                 cantidad
@@ -135,109 +173,51 @@ public class OrdenTrabajoService {
             int repuestoId)
             throws SQLException, ReglaNegocioException {
 
-        verificarOrdenEditable(ordenId);
-
-        if (repuestoId <= 0) {
-            throw new ReglaNegocioException(
-                    "El ID del repuesto debe ser válido."
-            );
-        }
-
-        dao.eliminarRepuesto(
+        ordenTrabajoDAO.eliminarRepuesto(
                 ordenId,
                 repuestoId
         );
     }
 
-    public double calcularTotal(int ordenId)
-            throws SQLException, ReglaNegocioException {
+    public double calcularTotal(
+            int ordenId)
+            throws SQLException {
 
-        if (ordenId <= 0) {
-            throw new ReglaNegocioException(
-                    "El ID de la orden debe ser válido."
-            );
-        }
-
-        return dao.calcularTotal(ordenId);
+        return ordenTrabajoDAO.calcularTotal(
+                ordenId
+        );
     }
 
-    public void finalizarOrden(int ordenId)
-            throws SQLException, ReglaNegocioException {
+    public void actualizarTotal(
+            int ordenId)
+            throws SQLException {
 
-        OrdenTrabajo orden = obtenerOrdenValida(ordenId);
+        double total =
+                ordenTrabajoDAO.calcularTotal(
+                        ordenId
+                );
 
-        if (orden.getEstado() != EstadoOrden.EN_PROCESO) {
-            throw new ReglaNegocioException(
-                    "Solo una orden EN_PROCESO puede finalizarse."
-            );
-        }
-
-        if (dao.contarServicios(ordenId) == 0) {
-            throw new ReglaNegocioException(
-                    "La orden debe tener al menos un servicio."
-            );
-        }
-
-        double total = dao.calcularTotal(ordenId);
-
-        dao.actualizarTotal(
+        ordenTrabajoDAO.actualizarTotal(
                 ordenId,
                 total
         );
+    }
 
-        dao.actualizarEstado(
-                ordenId,
-                EstadoOrden.FINALIZADA
+    public double finalizarOrden(
+            int ordenId)
+            throws SQLException, ReglaNegocioException {
+
+        return ordenTrabajoDAO.finalizarOrden(
+                ordenId
         );
     }
 
-    public void cancelarOrden(int ordenId)
+    public void cancelarOrden(
+            int ordenId)
             throws SQLException, ReglaNegocioException {
 
-        OrdenTrabajo orden = obtenerOrdenValida(ordenId);
-
-        if (orden.getEstado() != EstadoOrden.PENDIENTE &&
-                orden.getEstado() != EstadoOrden.EN_PROCESO) {
-
-            throw new ReglaNegocioException(
-                    "Solo una orden PENDIENTE o EN_PROCESO puede cancelarse."
-            );
-        }
-
-        dao.cancelarOrden(ordenId);
-    }
-
-    private OrdenTrabajo obtenerOrdenValida(int ordenId)
-            throws SQLException, ReglaNegocioException {
-
-        if (ordenId <= 0) {
-            throw new ReglaNegocioException(
-                    "El ID de la orden debe ser válido."
-            );
-        }
-
-        OrdenTrabajo orden = dao.buscarPorId(ordenId);
-
-        if (orden == null) {
-            throw new ReglaNegocioException(
-                    "La orden de trabajo no existe."
-            );
-        }
-
-        return orden;
-    }
-
-    private void verificarOrdenEditable(int ordenId)
-            throws SQLException, ReglaNegocioException {
-
-        OrdenTrabajo orden = obtenerOrdenValida(ordenId);
-
-        if (orden.getEstado() == EstadoOrden.FINALIZADA ||
-                orden.getEstado() == EstadoOrden.CANCELADA) {
-
-            throw new ReglaNegocioException(
-                    "La orden ya no puede modificarse."
-            );
-        }
+        ordenTrabajoDAO.cancelarOrden(
+                ordenId
+        );
     }
 }

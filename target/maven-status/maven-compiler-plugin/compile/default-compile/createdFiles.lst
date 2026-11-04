@@ -6,7 +6,9 @@ com\ultimoarranque\model\Mecanico.class
 com\ultimoarranque\TestModelo.class
 com\ultimoarranque\servlet\VehiculoServlet.class
 com\ultimoarranque\model\DetalleRepuesto.class
+com\ultimoarranque\service\ReporteService.class
 com\ultimoarranque\servlet\MecanicoServlet.class
+com\ultimoarranque\util\PdfGenerator.class
 com\ultimoarranque\servlet\InicioServlet.class
 com\ultimoarranque\exception\ReglaNegocioException.class
 com\ultimoarranque\model\EstadoOrden.class
@@ -18,6 +20,7 @@ com\ultimoarranque\service\ServicioService.class
 com\ultimoarranque\util\ConexionDB.class
 com\ultimoarranque\model\Vehiculo.class
 com\ultimoarranque\TestClienteDAO.class
+com\ultimoarranque\dao\ReporteDAO.class
 com\ultimoarranque\model\Servicio.class
 com\ultimoarranque\model\Persona.class
 com\ultimoarranque\service\OrdenTrabajoService.class
@@ -26,5 +29,6 @@ com\ultimoarranque\dao\ServicioDAO.class
 com\ultimoarranque\dao\RepuestoDAO.class
 com\ultimoarranque\model\OrdenTrabajo.class
 com\ultimoarranque\model\Cliente.class
+com\ultimoarranque\servlet\ReporteServlet.class
 com\ultimoarranque\servlet\RepuestoServlet.class
 com\ultimoarranque\dao\MecanicoDAO.class
