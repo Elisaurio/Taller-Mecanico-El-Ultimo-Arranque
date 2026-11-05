@@ -1,5 +1,6 @@
 package com.ultimoarranque.model;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,61 +12,121 @@ public class OrdenTrabajo {
     private String descripcionProblema;
     private EstadoOrden estado;
 
-    private List<Servicio> servicios;
-    private List<DetalleRepuesto> repuestos;
+    private Timestamp fechaCreacion;
+    private Timestamp fechaFinalizacion;
 
+    private double total;
+
+    private final List<Servicio> servicios;
+    private final List<DetalleRepuesto> repuestos;
+
+    /**
+     * Constructor vacío.
+     */
     public OrdenTrabajo() {
-        servicios = new ArrayList<>();
-        repuestos = new ArrayList<>();
-        estado = EstadoOrden.PENDIENTE;
+        this.estado = EstadoOrden.PENDIENTE;
+        this.servicios = new ArrayList<>();
+        this.repuestos = new ArrayList<>();
     }
 
-    public OrdenTrabajo(int id,
-                        Vehiculo vehiculo,
-                        Mecanico mecanico,
-                        String descripcionProblema) {
+    /**
+     * Constructor principal.
+     */
+    public OrdenTrabajo(
+            int id,
+            Vehiculo vehiculo,
+            Mecanico mecanico,
+            String descripcionProblema) {
+
+        this();
 
         this.id = id;
         this.vehiculo = vehiculo;
         this.mecanico = mecanico;
         this.descripcionProblema = descripcionProblema;
-        this.estado = EstadoOrden.PENDIENTE;
-
-        this.servicios = new ArrayList<>();
-        this.repuestos = new ArrayList<>();
     }
 
+    /**
+     * Agrega un servicio a la orden.
+     */
     public void agregarServicio(Servicio servicio) {
+
+        if (servicio == null) {
+            throw new IllegalArgumentException(
+                    "El servicio es obligatorio."
+            );
+        }
+
         servicios.add(servicio);
     }
 
+    /**
+     * Agrega un repuesto a la orden.
+     */
     public void agregarRepuesto(DetalleRepuesto detalle) {
+
+        if (detalle == null) {
+            throw new IllegalArgumentException(
+                    "El detalle del repuesto es obligatorio."
+            );
+        }
+
         repuestos.add(detalle);
     }
 
+    /**
+     * Calcula el total correspondiente a los servicios.
+     */
     public double calcularTotalServicios() {
 
-        double total = 0;
+        double totalServicios = 0.0;
 
         for (Servicio servicio : servicios) {
-            total += servicio.getCostoManoObra();
+            totalServicios += servicio.getCostoManoObra();
         }
 
-        return total;
+        return totalServicios;
     }
 
+    /**
+     * Calcula el total correspondiente a los repuestos.
+     */
     public double calcularTotalRepuestos() {
 
-        double total = 0;
+        double totalRepuestos = 0.0;
 
         for (DetalleRepuesto detalle : repuestos) {
-            total += detalle.getSubtotal();
+            totalRepuestos += detalle.getSubtotal();
         }
 
-        return total;
+        return totalRepuestos;
     }
 
+    /**
+     * Obtiene el total actual de los servicios.
+     */
+    public double getTotalServicios() {
+
+        return servicios.stream()
+                .mapToDouble(Servicio::getCostoManoObra)
+                .sum();
+    }
+
+    /**
+     * Obtiene el total actual de los repuestos.
+     */
+    public double getTotalRepuestos() {
+
+        return repuestos.stream()
+                .mapToDouble(DetalleRepuesto::getSubtotal)
+                .sum();
+    }
+
+    /**
+     * Calcula el total general de la orden.
+     */
     public double calcularTotal() {
+
         return calcularTotalServicios()
                 + calcularTotalRepuestos();
     }
@@ -107,7 +168,57 @@ public class OrdenTrabajo {
     }
 
     public void setEstado(EstadoOrden estado) {
+
+        if (estado == null) {
+            throw new IllegalArgumentException(
+                    "El estado es obligatorio."
+            );
+        }
+
         this.estado = estado;
+    }
+
+    public Timestamp getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(Timestamp fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    public Timestamp getFechaFinalizacion() {
+        return fechaFinalizacion;
+    }
+
+    public void setFechaFinalizacion(Timestamp fechaFinalizacion) {
+        this.fechaFinalizacion = fechaFinalizacion;
+    }
+
+    /**
+     * Obtiene el total almacenado de la orden.
+     *
+     * Si la orden está finalizada, devuelve el total
+     * registrado en la base de datos.
+     *
+     * Si está en proceso, calcula el total actual.
+     *
+     * Para órdenes pendientes o canceladas, devuelve 0.
+     */
+    public double getTotal() {
+
+        if (estado == EstadoOrden.FINALIZADA) {
+            return total;
+        }
+
+        if (estado == EstadoOrden.EN_PROCESO) {
+            return calcularTotal();
+        }
+
+        return 0.0;
+    }
+
+    public void setTotal(double total) {
+        this.total = total;
     }
 
     public List<Servicio> getServicios() {
